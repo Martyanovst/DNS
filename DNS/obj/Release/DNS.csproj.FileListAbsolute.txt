@@ -1,0 +1,12 @@
+F:\DNS\DNS\bin\Release\DNS.exe.config
+F:\DNS\DNS\bin\Release\DNS.exe
+F:\DNS\DNS\bin\Release\DNS.pdb
+F:\DNS\DNS\bin\Release\FluentAssertions.dll
+F:\DNS\DNS\bin\Release\nunit.framework.dll
+F:\DNS\DNS\bin\Release\FluentAssertions.pdb
+F:\DNS\DNS\bin\Release\FluentAssertions.xml
+F:\DNS\DNS\bin\Release\nunit.framework.xml
+F:\DNS\DNS\obj\Release\DNS.csprojResolveAssemblyReference.cache
+F:\DNS\DNS\obj\Release\DNS.csproj.CoreCompileInputs.cache
+F:\DNS\DNS\obj\Release\DNS.exe
+F:\DNS\DNS\obj\Release\DNS.pdb
