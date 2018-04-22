@@ -23,13 +23,31 @@ namespace DNS1
             TimeToDie = DateTime.Now + TimeSpan.FromSeconds(TTL);
         }
 
-        public virtual List<byte> ConvertToBytes(Dictionary<int, byte[]> cache, ref int offset)
+        public string GetName(byte[] data)
+        {
+            var buffer = new Buffer(data);
+            var lengthOfEntry = buffer.Pop();
+            var builder = new StringBuilder();
+            while (lengthOfEntry != 0)
+            {
+                builder.Append(DNSPacketParser.ReadBytes(buffer, lengthOfEntry));
+                builder.Append('.');
+                if (buffer.Offset == data.Length) break; ;
+                lengthOfEntry = buffer.Pop();
+            }
+            builder.Remove(builder.Length - 1, 1);
+            return builder.ToString();
+        }
+
+        public virtual List<byte> ConvertToBytes(Dictionary<byte[], int> cache, ref int offset)
         {
             var response = new List<byte>();
             foreach (var key in cache.Keys)
             {
-                if (Encoding.Default.GetString(cache[key]) != Name) continue;
-                var bytes = SimpleDNSPacketCreator.GetBytes(key, 2);
+                var name = GetName(key);
+                if (name != Name) continue;
+                var index = cache[key];
+                var bytes = SimpleDNSPacketCreator.GetBytes(index, 2);
                 bytes[0] |= 192;
                 response.AddRange(bytes);
                 break;
@@ -55,7 +73,7 @@ namespace DNS1
                 offset += 1;
                 response.Add((byte)tmp.Count);
                 response.AddRange(tmp);
-                cache[index] = tmp.ToArray();
+                cache[tmp.ToArray()] = index;
             }
             else
             {

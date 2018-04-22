@@ -162,13 +162,10 @@ namespace DNS1
                     builders[index].Append(cache[address + 1]);
                     break;
                 }
-                else
-                {
                     builders[data.Offset] = new StringBuilder();
                     var entry = ReadBytes(data, lengthOfEntry);
                     foreach (var builder in builders.Values)
                         builder.Append(entry + '.');
-                }
                 lengthOfEntry = data.Pop();
             }
             foreach (var idx in builders.Keys)

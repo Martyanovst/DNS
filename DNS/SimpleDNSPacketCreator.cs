@@ -8,7 +8,7 @@ namespace DNS1
     {
         public static byte[] CreateResponse(DNSQuestion[] questions, int transmissionId, List<DNSEntry> data)
         {
-            var cache = new Dictionary<int, byte[]>();
+            var cache = new Dictionary<byte[], int>();
             var answers = data.Where(x => x.Type != QType.SOA).ToArray();
             var authority = data.Where(x => x.Type == QType.SOA).ToArray();
             var response = new List<byte>();

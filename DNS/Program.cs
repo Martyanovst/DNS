@@ -1,29 +1,52 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace DNS1
 {
     class Program
     {
+        public static async void ClearCache(Dictionary<QType, ConcurrentDictionary<string, DNSEntry>> cache)
+        {
+            while (true)
+            {
+                await Task.Delay(30000);
+                lock (cache)
+                {
+                    foreach (var typeCache in cache.Values)
+                    {
+                        foreach (var key in typeCache.Keys)
+                        {
+                            if (!typeCache.TryGetValue(key, out var entry)) continue;
+                            if (DateTime.Now > entry.TimeToDie)
+                                typeCache.TryRemove(key, out var _);
+                        }
+                    }
+                }
+            }
+        }
+
         static void Main(string[] args)
         {
-            var cache = new Dictionary<QType, Dictionary<string, DNSEntry>>()
+            var cache = new Dictionary<QType, ConcurrentDictionary<string, DNSEntry>>()
             {
-                [QType.A] = new Dictionary<string, DNSEntry>(),
-                [QType.NS] = new Dictionary<string, DNSEntry>(),
-                [QType.SOA] = new Dictionary<string, DNSEntry>(),
-                [QType.AAAA] = new Dictionary<string, DNSEntry>(),
-                [QType.CNAME] = new Dictionary<string, DNSEntry>()
+                [QType.A] = new ConcurrentDictionary<string, DNSEntry>(),
+                [QType.NS] = new ConcurrentDictionary<string, DNSEntry>(),
+                [QType.SOA] = new ConcurrentDictionary<string, DNSEntry>(),
+                [QType.AAAA] = new ConcurrentDictionary<string, DNSEntry>(),
+                [QType.CNAME] = new ConcurrentDictionary<string, DNSEntry>()
             };
 
             var ROOT = IPAddress.Parse("8.8.8.8");
 
             IPEndPoint client = null;
             var server = new IPEndPoint(ROOT, 53);
-
+            Task.Run(() => ClearCache(cache));
             using (var rootClient = new UdpClient(11000))
             {
                 using (var udpClient = new UdpClient(53))
@@ -39,15 +62,22 @@ namespace DNS1
                                 cache[question.Type].TryGetValue(question.Name, out var data))
                             {
                                 if (DateTime.Now > data.TimeToDie)
-                                    cache[question.Type].Remove(question.Name);
+                                    cache[question.Type].TryRemove(question.Name, out var _);
                                 else
                                     answersToSend.Add(data);
                             }
-
                         if (answersToSend.Count != 0)
                         {
                             var dataToSend = SimpleDNSPacketCreator.CreateResponse(query.Questions, query.Id, answersToSend);
                             udpClient.Send(dataToSend, dataToSend.Length, client);
+                            var builder = new StringBuilder();
+
+                            foreach (var answer in answersToSend.Select(x => x.Name))
+                            {
+                                builder.Append(answer);
+                                builder.Append(Environment.NewLine);
+                            }
+                            Console.WriteLine($"Send to client from cache: {builder}");
                         }
                         else
                         {
@@ -56,10 +86,8 @@ namespace DNS1
                             var response = DNSPacketParser.Parse(responseData);
                             foreach (var question in response.Answers.Concat(response.Authority)
                                 .Concat(response.Additional))
-                            {
                                 if (cache.ContainsKey(question.Type))
                                     cache[question.Type][question.Name] = question;
-                            }
 
                             udpClient.Send(responseData, responseData.Length, client);
                         }

@@ -28,7 +28,7 @@ namespace DNS1
             dataLength = dataLen;
         }
 
-        public override List<byte> ConvertToBytes(Dictionary<int, byte[]> cache, ref int offset)
+        public override List<byte> ConvertToBytes(Dictionary<byte[],int> cache, ref int offset)
         {
             var response = new List<byte> { 0 };
             //
@@ -49,7 +49,7 @@ namespace DNS1
             return response;
         }
 
-        private void ConvertData(List<byte> response, Dictionary<int, byte[]> cache, string data, ref int offset)
+        private void ConvertData(List<byte> response, Dictionary<byte[],int> cache, string data, ref int offset)
         {
             var index = offset;
             var tmp = new List<byte>();
@@ -64,7 +64,7 @@ namespace DNS1
             offset += 1;
             response.Add((byte)tmp.Count);
             response.AddRange(tmp);
-            cache[index] = tmp.ToArray();
+            cache[tmp.ToArray()] = index;
         }
     }
 }
