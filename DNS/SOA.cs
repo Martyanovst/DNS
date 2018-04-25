@@ -31,7 +31,6 @@ namespace DNS1
         public override List<byte> ConvertToBytes(Dictionary<byte[],int> cache, ref int offset)
         {
             var response = new List<byte> { 0 };
-            //
             response.AddRange(new byte[] { 0, (byte)Type, 0, 1 });
             response.AddRange(SimpleDNSPacketCreator.GetBytes((int)(TimeToDie - DateTime.Now).TotalSeconds, 4));
             response.AddRange(SimpleDNSPacketCreator.GetBytes(dataLength, 2));

@@ -32,7 +32,7 @@ namespace DNS1
             {
                 builder.Append(DNSPacketParser.ReadBytes(buffer, lengthOfEntry));
                 builder.Append('.');
-                if (buffer.Offset == data.Length) break; ;
+                if (buffer.Offset == data.Length) break;
                 lengthOfEntry = buffer.Pop();
             }
             builder.Remove(builder.Length - 1, 1);
@@ -58,7 +58,7 @@ namespace DNS1
             response.AddRange(SimpleDNSPacketCreator.GetBytes((int)(TimeToDie - DateTime.Now).TotalSeconds, 4));
             offset += 10;
 
-            if (Type == QType.CNAME)
+            if (Type == QType.CNAME || Type == QType.NS)
             {
                 var index = offset;
                 var str = Encoding.Default.GetString(Data);
@@ -66,12 +66,14 @@ namespace DNS1
                 var fields = str.Split('.');
                 foreach (var field in fields)
                 {
+                    if(field.Length <= 0) continue;
                     tmp.Add((byte)field.Length);
                     tmp.AddRange(Encoding.Default.GetBytes(field));
                     offset += field.Length + 1;
                 }
                 offset += 1;
-                response.Add((byte)tmp.Count);
+                tmp.Add(0);
+                response.AddRange(SimpleDNSPacketCreator.GetBytes(tmp.Count, 2));
                 response.AddRange(tmp);
                 cache[tmp.ToArray()] = index;
             }
@@ -81,12 +83,6 @@ namespace DNS1
                 response.AddRange(Data);
                 offset += Data.Length + 1;
             }
-
-            response.Add(0);
-            response.Add((byte)Type);
-            response.Add(0);
-            response.Add((byte)Class);
-            offset += 4;
             return response;
         }
     }

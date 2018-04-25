@@ -16,16 +16,13 @@ namespace DNS1
             while (true)
             {
                 await Task.Delay(30000);
-                lock (cache)
+                foreach (var typeCache in cache.Values)
                 {
-                    foreach (var typeCache in cache.Values)
+                    foreach (var key in typeCache.Keys)
                     {
-                        foreach (var key in typeCache.Keys)
-                        {
-                            if (!typeCache.TryGetValue(key, out var entry)) continue;
-                            if (DateTime.Now > entry.TimeToDie)
-                                typeCache.TryRemove(key, out var _);
-                        }
+                        if (!typeCache.TryGetValue(key, out var entry)) continue;
+                        if (DateTime.Now > entry.TimeToDie)
+                            typeCache.TryRemove(key, out var _);
                     }
                 }
             }
@@ -55,7 +52,7 @@ namespace DNS1
                     {
                         var requestData = WaitForConnection(udpClient, ref client);
                         var query = DNSPacketParser.Parse(requestData);
-
+                        Console.WriteLine($"Query from {client}: query: {query.Questions[0].Name} type: {query.Questions[0].Type}\n");
                         var answersToSend = new List<DNSEntry>();
                         foreach (var question in query.Questions)
                             if (cache.ContainsKey(question.Type) &&
@@ -77,19 +74,23 @@ namespace DNS1
                                 builder.Append(answer);
                                 builder.Append(Environment.NewLine);
                             }
-                            Console.WriteLine($"Send to client from cache: {builder}");
+                            Console.WriteLine($"Send to client from cache: {builder} type: {query.Questions[0].Type}");
                         }
                         else
                         {
                             rootClient.Send(requestData, requestData.Length, server);
+                            Console.WriteLine($"Can't find entry in cache. Send to server: {query.Questions[0].Name} type: {query.Questions[0].Type}\n");
                             var responseData = rootClient.Receive(ref server);
                             var response = DNSPacketParser.Parse(responseData);
+                            Console.WriteLine($"Response from server: query: {response.Questions[0].Name} type: {response.Questions[0].Type}\n");
+
                             foreach (var question in response.Answers.Concat(response.Authority)
                                 .Concat(response.Additional))
                                 if (cache.ContainsKey(question.Type))
                                     cache[question.Type][question.Name] = question;
 
                             udpClient.Send(responseData, responseData.Length, client);
+                            Console.WriteLine($"Send response to client: server-address: {ROOT} query:  {response.Questions[0].Name} type: {response.Questions[0].Type}\n");
                         }
                     }
                 }

@@ -79,7 +79,7 @@ namespace DNS1
                 var cls = (QClass)ReadRawBytes(data, 2);
                 var ttl = ReadRawBytes(data, 4);
                 var rdlength = ReadRawBytes(data, 2);
-                if (type == QType.SOA) result[i] = ReadSoa(data, cache,name,ttl,rdlength);
+                if (type == QType.SOA) result[i] = ReadSoa(data, cache, name, ttl, rdlength);
                 else
                 {
                     var rdata = ReadNameDataWithFixedLength(data, cache, rdlength, type);
@@ -89,7 +89,7 @@ namespace DNS1
             return result;
         }
 
-        private static DNSEntry ReadSoa(Buffer data, Dictionary<int, string> cache,string name,int ttl,int rdLength)
+        private static DNSEntry ReadSoa(Buffer data, Dictionary<int, string> cache, string name, int ttl, int rdLength)
         {
             var primaryNameServer = ReadNameData(data, cache);
             var responsibleAuthorityMailbox = ReadNameData(data, cache);
@@ -98,12 +98,12 @@ namespace DNS1
             var retryInterval = ReadRawBytes(data, 4);
             var expirelimit = ReadRawBytes(data, 4);
             var minimumTtl = ReadRawBytes(data, 4);
-            return new SOA(name,QType.SOA,QClass.IN,ttl,primaryNameServer,responsibleAuthorityMailbox,serialNumber,refreshInterval,retryInterval,expirelimit,minimumTtl,rdLength);
+            return new SOA(name, QType.SOA, QClass.IN, ttl, primaryNameServer, responsibleAuthorityMailbox, serialNumber, refreshInterval, retryInterval, expirelimit, minimumTtl, rdLength);
         }
 
         private static byte[] ReadNameDataWithFixedLength(Buffer data, Dictionary<int, string> cache, int length, QType type)
         {
-            if (type != QType.CNAME)
+            if (type != QType.CNAME && type != QType.NS)
                 return ReadBytesWithoutCasting(data, length);
             var bldr = new StringBuilder();
             var finish = data.Offset + length;
@@ -112,24 +112,26 @@ namespace DNS1
             while (data.Offset != finish)
             {
                 var lengthOfEntry = data.Pop();
-                bldr.Append(lengthOfEntry);
+                //bldr.Append(lengthOfEntry);
                 if (lengthOfEntry >= 192)
                 {
                     var addr = lengthOfEntry & 63;
                     var secondByte = data.Pop();
                     var address = int.Parse(Convert.ToInt32(addr).ToString() + Convert.ToInt32(secondByte));
                     builders[index].Append(cache[address + 1]);
-                    bldr.Append(secondByte);
+                    bldr.Append(cache[address + 1] + '.');
                 }
                 else
                 {
                     builders[data.Offset] = new StringBuilder();
                     var entry = ReadBytes(data, lengthOfEntry);
-                    bldr.Append(entry);
+                    bldr.Append(entry + '.');
                     foreach (var builder in builders.Values)
                         builder.Append(entry + '.');
                 }
             }
+
+            bldr.Remove(bldr.Length - 1, 1);
             foreach (var idx in builders.Keys)
             {
                 var builder = builders[idx];
@@ -162,10 +164,10 @@ namespace DNS1
                     builders[index].Append(cache[address + 1]);
                     break;
                 }
-                    builders[data.Offset] = new StringBuilder();
-                    var entry = ReadBytes(data, lengthOfEntry);
-                    foreach (var builder in builders.Values)
-                        builder.Append(entry + '.');
+                builders[data.Offset] = new StringBuilder();
+                var entry = ReadBytes(data, lengthOfEntry);
+                foreach (var builder in builders.Values)
+                    builder.Append(entry + '.');
                 lengthOfEntry = data.Pop();
             }
             foreach (var idx in builders.Keys)

@@ -23,3 +23,4 @@ F:\DNS\DNS\bin\Release\DNS1.exe
 F:\DNS\DNS\bin\Release\DNS1.pdb
 F:\DNS\DNS\obj\Release\DNS1.exe
 F:\DNS\DNS\obj\Release\DNS1.pdb
+F:\DNS\DNS\obj\Release\DNS1.csprojResolveAssemblyReference.cache
